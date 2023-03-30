@@ -14,7 +14,7 @@ Your content here
 ## General Resources
 - https://ippsec.rock
 
-## Port Discovery
+## Port/OS Discovery
 ```
 sudo masscan -p1-65535,U:1-65535 --rate=1000 -e tun0 #.#.#.#
 ```
@@ -29,6 +29,12 @@ nmap host.domain.tld -p 22,80 -Pn -sC -sV --open -e tun0 -oA '.\nmap_TCP_Initial
 ```
 sudo nmap host.domain.tld -p 53,135 -Pn -sC -sV --open -e tun0 -sU -oA '.\nmap_UDP_Initial'
 ```
+```
+ping host.domain.tld
+```
+- TTL 254 = Cisco default
+- TTL 127 = Windows default
+- TTL 64  = Linux default
 ## Web Application Security
 Your content here
 - File/Directory Enumeration
@@ -170,6 +176,10 @@ impacket-GetNPUsers domain.tld/ -usersfile 'Domain_Users.txt' -outputfile 'Impac
 ```
 nmap host.domain.tld -Pn -p 1433 --script ms-sql-info,ms-sql-ntlm-info -e tun0 -oA 'nmap_mssql'
 ```
+#### SMTP
+```
+nmap host.domain.tld --script smtp-vuln-* -p 25 -Pn -e tun0 -oA 'nmap_smtp_vuln'
+```
 #### Patch Management
 Don't expect a patch to be missing in the real world, but we're in the fake world:
 
@@ -287,7 +297,7 @@ Your content here
 patator smb_login host=host.domain.tld user='User' password='Password123!' domain=domain.tld port=445 --max-retries=0 --csv='patator_smb_single.csv'
 ```
 ```
-patator smb_login host=host.domain.tld password='Password123!' user=FILE0 port=445 0='/usr/share/wordlists/seclists/cirt-default-usernames.txt' --max-retries=0 --csv='patator_smb_user.csv'
+patator smb_login host=host.domain.tld password='Password123!' user=FILE0 port=445 0='/usr/share/wordlists/seclists/Usernames/cirt-default-usernames.txt' --max-retries=0 --csv='patator_smb_user.csv'
 ```
 ```
 patator smb_login host=host.domain.tld user='User' domain=domain.tld password=FILE0 port=445 0='/usr/share/wordlists/rockyou.txt' --max-retries=0 --csv='patator_smb_pass.csv'
@@ -300,11 +310,16 @@ patator smb_login host=host.domain.tld domain=domain.tld user=FILE0 password=FIL
 patator ssh_login host=host.domain.tld user='User' password='Password123!' port=22 --max-retries=0 --csv='patator_ssh_single.csv'
 ```
 ```
-patator ssh_login host=host.domain.tld password='Password123!' port=22 user=FILE0 0='/usr/share/wordlists/seclists/cirt-default-usernames.txt' --max-retries=0 --csv='patator_ssh_user.csv'
+patator ssh_login host=host.domain.tld password='Password123!' port=22 user=FILE0 0='/usr/share/wordlists/seclists/Usernames/cirt-default-usernames.txt' --max-retries=0 --csv='patator_ssh_user.csv'
 ```
 ```
 patator ssh_login host=host.domain.tld user='User' port=22 password=FILE0 0='/usr/share/wordlists/rockyou.txt' --max-retries=0 --csv='ssh_pass.csv'
 ```
+### SMTP
+```
+"$Tools/GoMapEnum" userenum smtp -t host.domain.tld -d domain.tld -u '/usr/share/wordlists/seclists/Usernames/cirt-default-usernames.txt'
+```
+- Any external emails are false positives as the mail server cannot verify external domains
 ## Hashcat
 NameThatHash (nth)
 
@@ -326,6 +341,14 @@ Your content here
 ```
 echo 'acd==' | base64 -d
 ```
+**File Metadata/String**
+```
+file file.txt
+exiftool file.txt
+```
+## Microsoft Office
+- Word > Insert > Quick Parts > Field > Links and References > Include picture > http://#.#.#.#/canary.jpg
+	- Works on WordPad and Office (licensing problems)
 ## Attacker Local
 Your content here
 **Python Virtual Environment (>=3.11)**
