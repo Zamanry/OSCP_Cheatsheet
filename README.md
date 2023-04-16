@@ -61,10 +61,10 @@ Remove `asp`/`aspx` for Linux hosts
 - `-n` stops recursive directory lookups
 - `-b` searches for backups; can produce false positives
 ```
-feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 -B --auto-tune --burp-replay
-feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 -B --auto-tune --burp-replay --dont-scan Css Js css img js IMG JS Img CSS fonts Fonts master
-feroxbuster -u http://host.domain.tld:80/ -x asp,aspx,html,php,xml,json,txt -C 404 -A -e -S 0 -B --auto-tune --burp-replay
-feroxbuster -u http://host.domain.tld/cgi-bin:80/ -x cgi,pl,py,sh -C 404 -A -e -S 0 -B --auto-tune --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 --auto-tune --burp-replay
+feroxbuster -u http://host.domain.tld:80/ -f -n -C 404 -A -e -S 0 --auto-tune --burp-replay --dont-scan Css Js css img js IMG JS Img CSS fonts Fonts master
+feroxbuster -u http://host.domain.tld:80/ -x asp,aspx,html,php,xml,json,txt,log -C 404 -A -e -S 0 --auto-tune --burp-replay
+feroxbuster -u http://host.domain.tld/cgi-bin:80/ -x cgi,pl,py,sh -C 404 -A -e -S 0 --auto-tune --burp-replay
 feroxbuster -u http://host.domain.tld:80/ -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' -B --auto-tune --burp-replay
 feroxbuster -u http://host.domain.tld:80/ -x html,php -C 404 -A -e -S 0 --wordlist '/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-big.txt' -B --auto-tune --burp-replay
 ```
@@ -108,6 +108,8 @@ nikto -host='http://host.domain.tld'
 ### SQL Injection
 - Check to see if the form/input actually goes anywhere (isn't fake)
 - https://portswigger.net/web-security/sql-injection/cheat-sheet
+- Common characters to check for sanitization: `< > ' " { } ;-#=TICK/\`
+- If the above don't trigger any errors, etc., maybe it is NoSQL? [Injection](https://book.hacktricks.xyz/pentesting-web/nosql-injection#basic-authentication-bypass)
 ### Bypass 403
 - https://github.com/iamj0ker/bypass-403
 
@@ -123,7 +125,7 @@ People:
 ### Sensitive Information
 ```
 curl 'http://host/domain.tld/index.html' | grep -oE '\w+' | sort -u -f | more
-cewl -u 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36' http://host.domain.tld --depth 5 -a --with-numbers -m 6 --exclude './cewl_Exclude.txt'
+cewl http://host.domain.tld -u 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36' --depth 5 -a --with-numbers -m 6 --exclude './cewl_Exclude.txt' -w 'cewl.txt'
 ```
 ### IIS
 **WebDAV**
@@ -166,12 +168,17 @@ Your content here
 - https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Linux%20-%20Privilege%20Escalation.md
 - https://security.stackexchange.com/questions/252665/does-john-the-ripper-not-support-yescrypt
 - https://gtfobins.github.io/
+- https://www.mongodb.com/docs/mongodb-shell/
 ```
 sudo -l
 getcap -r / 2>/dev/null
 su - root
 su - root '/bin/Web-Attack-Cheat-Sheet'
 find / -perm -4000 -type f -exec ls -al {} \; 2>/dev/null
+grep -E -o ".{0,15}query.{0,15}" -iR ./ 2>/dev/null
+gcc
+less /etc/crontab
+gcc -pthread dirtycow.c -o dirtycow -lcrypt -static
 ```
 Obtain Real Shell (TTY/etc.)
 ```
@@ -186,7 +193,7 @@ xterm-color
 ### MySQL
 ```
 nmap host.domain.tld -p 3306 -Pn --script mysql-*
-mysql -u 'User' -p'Password123!' -h host.domain.tld
+mysql -u 'User' --password='Password123!' -h host.domain.tld -D database -P 3306
 ```
 ## Windows and AD Security
 Your content here
@@ -607,7 +614,7 @@ apt-cache policy
 ```
 python2 -m SimpleHTTPServer 80
 python3 -m http.server 80
-impacket-smbserver share './'' -smb2support -debug
+impacket-smbserver share './' -smb2support -debug
 ```
 ## Connections
 **RDP**
