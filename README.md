@@ -400,7 +400,7 @@ Invoke-BloodHound -CollectionMethod All
 dir "C:\program files\MSBuild\MIcrosoft\Windows Workflow Foundation\
 ```
 ```
-python -m bloodhound -c All -d domain.tld -u 'User' -p 'Password123! -ns #.#.#.#
+python -m bloodhound -c All -d domain.tld -u 'User' -p 'Password123!' -ns #.#.#.#
 ```
 - Look for odd stuff (the path) (mark as high-value)
 - Domain Users <> Domain Computers and to each other
