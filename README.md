@@ -16,7 +16,7 @@ Your content here
 
 ## Port/OS Discovery
 ```
-nmap -Pn -p- host.domain.tld -v -T3
+nmap -Pn -p- host.domain.tld -v -T3 --open -e tun0 -oA '.\nmap_TCP_All'
 sudo masscan -p1-65535,U:1-65535 --rate=500 -e tun0 #.#.#.#
 ```
 1. Paste results into Sublime and enable regex
