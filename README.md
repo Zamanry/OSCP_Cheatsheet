@@ -555,6 +555,9 @@ cp /usr/share/exploitdb/exploits/<path> ./
 ```
 ## Attacker Local
 Your content here
+```
+sudo vi '/etc/hosts'
+```
 ### Python
 **Python Virtual Environment (pyenv)**
 ```
